@@ -1,89 +1,88 @@
 package battleship;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import java.util.*;
+
+class Ship {
+    String name;
+    int size;
+
+    Ship(String name, int size) {
+        this.name = name;
+        this.size = size;
+    }
+}
 
 public class Main {
-
-    private static final int SIZE = 10;
-    private static final char WATER = '~';
-    private static final char SHIP = 'O';
-    private static final char[] ROWS = "ABCDEFGHIJ".toCharArray();
-    private static final String ERROR_MSG = "Error!";
-
-    private static char[][] field = new char[SIZE][SIZE];
+    static final int SIZE = 10;
+    static final char WATER = '~';
+    static final char SHIP = 'O';
+    static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
-        initField();
-        printField();
+        char[][] field = createEmptyField();
 
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter the coordinates of the ship:");
-        String input = scanner.nextLine();
-        String[] coords = input.trim().toUpperCase().split("\\s+");
+        List<Ship> ships = List.of(
+                new Ship("Aircraft Carrier", 5),
+                new Ship("Battleship", 4),
+                new Ship("Submarine", 3),
+                new Ship("Cruiser", 3),
+                new Ship("Destroyer", 2)
+        );
 
-        if (coords.length != 2) {
-            System.out.println(ERROR_MSG);
-            return;
-        }
+        printField(field);
 
-        int[] start = parseCoordinate(coords[0]);
-        int[] end = parseCoordinate(coords[1]);
+        for (Ship ship : ships) {
+            boolean placed = false;
+            while (!placed) {
+                System.out.printf("Enter the coordinates of the %s (%d cells):%n", ship.name, ship.size);
+                String input = scanner.nextLine();
+                String[] parts = input.split(" ");
 
-        if (start == null || end == null) {
-            System.out.println(ERROR_MSG);
-            return;
-        }
+                if (parts.length != 2 || !isValidCoordinate(parts[0]) || !isValidCoordinate(parts[1])) {
+                    System.out.println("Error! Invalid coordinates. Try again:");
+                    continue;
+                }
 
-        // Check alignment: must be horizontal or vertical
-        if (start[0] != end[0] && start[1] != end[1]) {
-            System.out.println(ERROR_MSG);
-            return;
-        }
+                int[] start = parseCoordinate(parts[0]);
+                int[] end = parseCoordinate(parts[1]);
 
-        // Place ship and collect its parts
-        List<String> parts = new ArrayList<>();
-        int length;
+                if (!isStraightLine(start, end)) {
+                    System.out.println("Error! Wrong ship location! Try again:");
+                    continue;
+                }
 
-        if (start[0] == end[0]) {
-            // Horizontal ship
-            int row = start[0];
-            int minCol = Math.min(start[1], end[1]);
-            int maxCol = Math.max(start[1], end[1]);
-            length = maxCol - minCol + 1;
+                int len = calculateLength(start, end);
+                if (len != ship.size) {
+                    System.out.printf("Error! Wrong length of the %s! Try again:%n", ship.name);
+                    continue;
+                }
 
-            for (int c = minCol; c <= maxCol; c++) {
-                field[row][c] = SHIP;
-                parts.add("" + ROWS[row] + (c + 1));
+                if (isTooCloseToOtherShips(field, start, end)) {
+                    System.out.println("Error! You placed it too close to another one. Try again:");
+                    continue;
+                }
+
+                placeShip(field, start, end);
+                printField(field);
+                placed = true;
             }
-        } else {
-            // Vertical ship
-            int col = start[1];
-            int minRow = Math.min(start[0], end[0]);
-            int maxRow = Math.max(start[0], end[0]);
-            length = maxRow - minRow + 1;
-
-            for (int r = minRow; r <= maxRow; r++) {
-                field[r][col] = SHIP;
-                parts.add("" + ROWS[r] + (col + 1));
-            }
-        }
-
-        System.out.println("Length: " + length);
-        System.out.print("Parts: ");
-        System.out.println(String.join(" ", parts));
-        //printField();
-    }
-
-    private static void initField() {
-        for (int i = 0; i < SIZE; i++) {
-            Arrays.fill(field[i], WATER);
         }
     }
 
-    private static void printField() {
+    static char[][] createEmptyField() {
+        char[][] field = new char[SIZE][SIZE];
+        for (char[] row : field) {
+            Arrays.fill(row, WATER);
+        }
+        return field;
+    }
+
+    static void printField(char[][] field) {
         System.out.print("  ");
         for (int i = 1; i <= SIZE; i++) {
             System.out.print(i + " ");
@@ -91,7 +90,7 @@ public class Main {
         System.out.println();
 
         for (int i = 0; i < SIZE; i++) {
-            System.out.print(ROWS[i] + " ");
+            System.out.print((char) ('A' + i) + " ");
             for (int j = 0; j < SIZE; j++) {
                 System.out.print(field[i][j] + " ");
             }
@@ -99,23 +98,51 @@ public class Main {
         }
     }
 
-    private static int[] parseCoordinate(String coord) {
-        if (coord.length() < 2 || coord.length() > 3) return null;
+    static boolean isValidCoordinate(String coord) {
+        return coord.matches("[A-J](10|[1-9])");
+    }
 
-        char rowChar = coord.charAt(0);
-        int row = rowChar - 'A';
-        int col;
-
-        try {
-            col = Integer.parseInt(coord.substring(1)) - 1;
-        } catch (NumberFormatException e) {
-            return null;
-        }
-
-        if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) {
-            return null;
-        }
-
+    static int[] parseCoordinate(String coord) {
+        int row = coord.charAt(0) - 'A';
+        int col = Integer.parseInt(coord.substring(1)) - 1;
         return new int[]{row, col};
     }
+
+    static boolean isStraightLine(int[] start, int[] end) {
+        return start[0] == end[0] || start[1] == end[1];
+    }
+
+    static int calculateLength(int[] start, int[] end) {
+        return Math.abs(start[0] - end[0]) + Math.abs(start[1] - end[1]) + 1;
+    }
+
+    static void placeShip(char[][] field, int[] start, int[] end) {
+        int r1 = Math.min(start[0], end[0]);
+        int r2 = Math.max(start[0], end[0]);
+        int c1 = Math.min(start[1], end[1]);
+        int c2 = Math.max(start[1], end[1]);
+
+        for (int r = r1; r <= r2; r++) {
+            for (int c = c1; c <= c2; c++) {
+                field[r][c] = SHIP;
+            }
+        }
+    }
+
+    static boolean isTooCloseToOtherShips(char[][] field, int[] start, int[] end) {
+        int r1 = Math.min(start[0], end[0]) - 1;
+        int r2 = Math.max(start[0], end[0]) + 1;
+        int c1 = Math.min(start[1], end[1]) - 1;
+        int c2 = Math.max(start[1], end[1]) + 1;
+
+        for (int r = Math.max(0, r1); r <= Math.min(SIZE - 1, r2); r++) {
+            for (int c = Math.max(0, c1); c <= Math.min(SIZE - 1, c2); c++) {
+                if (field[r][c] == SHIP) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
+
