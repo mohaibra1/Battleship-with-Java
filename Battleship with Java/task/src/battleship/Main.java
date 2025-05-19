@@ -18,6 +18,7 @@ public class Main {
     static final char SHIP = 'O';
     static final Scanner scanner = new Scanner(System.in);
     static char[][] field = createEmptyField();
+    static char[][] fieldFogOfWar = createEmptyField();
     public static void main(String[] args) {
 
         List<Ship> ships = List.of(
@@ -68,7 +69,7 @@ public class Main {
         }
         System.out.println();
         System.out.println("The game starts!");
-        printField(field);
+        printField(fieldFogOfWar);
         System.out.println("Take a shot!");
         String input = scanner.nextLine();
         game(input);
@@ -88,9 +89,13 @@ public class Main {
             char checkPosition = field[parseCoordinate[0]][parseCoordinate[1]];
             if(checkPosition != WATER){
                 field[parseCoordinate[0]][parseCoordinate[1]] = 'X';
+                fieldFogOfWar[parseCoordinate[0]][parseCoordinate[1]] = 'X';
+                printField(fieldFogOfWar);
                 System.out.println("You hit a ship");
             }else{
                 field[parseCoordinate[0]][parseCoordinate[1]] = 'M';
+                fieldFogOfWar[parseCoordinate[0]][parseCoordinate[1]] = 'X';
+                printField(fieldFogOfWar);
                 System.out.println("You missed!");
             }
             break;
