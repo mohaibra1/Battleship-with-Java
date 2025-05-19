@@ -2,11 +2,6 @@ package battleship;
 
 import java.util.*;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import java.util.*;
-
 class Ship {
     String name;
     int size;
@@ -22,9 +17,8 @@ public class Main {
     static final char WATER = '~';
     static final char SHIP = 'O';
     static final Scanner scanner = new Scanner(System.in);
-
+    static char[][] field = createEmptyField();
     public static void main(String[] args) {
-        char[][] field = createEmptyField();
 
         List<Ship> ships = List.of(
                 new Ship("Aircraft Carrier", 5),
@@ -72,6 +66,36 @@ public class Main {
                 placed = true;
             }
         }
+        System.out.println();
+        System.out.println("The game starts!");
+        printField(field);
+        System.out.println("Take a shot!");
+        String input = scanner.nextLine();
+        game(input);
+        printField(field);
+    }
+
+    static void game(String input){
+        while (true){
+            boolean valid = isValidCoordinate(input);
+            if (!valid){
+                System.out.println("Error! You entered the wrong coordinates! Try again:");
+                input = Main.scanner.nextLine();
+                continue;
+            }
+
+            int[] parseCoordinate = parseCoordinate(input);
+            char checkPosition = field[parseCoordinate[0]][parseCoordinate[1]];
+            if(checkPosition != WATER){
+                field[parseCoordinate[0]][parseCoordinate[1]] = 'X';
+                System.out.println("You hit a ship");
+            }else{
+                field[parseCoordinate[0]][parseCoordinate[1]] = 'M';
+                System.out.println("You missed!");
+            }
+            break;
+        }
+
     }
 
     static char[][] createEmptyField() {
