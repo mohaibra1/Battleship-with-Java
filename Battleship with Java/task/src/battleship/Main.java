@@ -19,8 +19,9 @@ public class Main {
     static final Scanner scanner = new Scanner(System.in);
     static char[][] field = createEmptyField();
     static char[][] fieldFogOfWar = createEmptyField();
+    static String[] coordinates = new String[50];
+    static int index;
     public static void main(String[] args) {
-
         List<Ship> ships = List.of(
                 new Ship("Aircraft Carrier", 5),
                 new Ship("Battleship", 4),
@@ -28,6 +29,7 @@ public class Main {
                 new Ship("Cruiser", 3),
                 new Ship("Destroyer", 2)
         );
+
 
         printField(field);
 
@@ -73,10 +75,11 @@ public class Main {
         System.out.println("Take a shot!");
         String input = scanner.nextLine();
         game(input);
-        printField(field);
+        //printField(field);
     }
 
     static void game(String input){
+        String[] copyOfCoordinates = new String[]{Arrays.toString(coordinates)};
         while (true){
             boolean valid = isValidCoordinate(input);
             if (!valid){
@@ -87,20 +90,74 @@ public class Main {
 
             int[] parseCoordinate = parseCoordinate(input);
             char checkPosition = field[parseCoordinate[0]][parseCoordinate[1]];
-            if(checkPosition != WATER){
-                field[parseCoordinate[0]][parseCoordinate[1]] = 'X';
+            if(checkPosition == SHIP){
+                //field[parseCoordinate[0]][parseCoordinate[1]] = 'X';
                 fieldFogOfWar[parseCoordinate[0]][parseCoordinate[1]] = 'X';
                 printField(fieldFogOfWar);
-                System.out.println("You hit a ship");
-            }else{
-                field[parseCoordinate[0]][parseCoordinate[1]] = 'M';
-                fieldFogOfWar[parseCoordinate[0]][parseCoordinate[1]] = 'X';
+                //check if ship sunk
+                boolean sank = sunk(parseCoordinate[0]+""+parseCoordinate[1]);
+                if (sank && !winner()){
+                    System.out.println("You sank a ship! Specify a new target:");
+                }else if (!winner() && !sank){
+                    System.out.println("You hit a ship! Try again:");
+                }
+            }else if (checkPosition == WATER){
+                //field[parseCoordinate[0]][parseCoordinate[1]] = 'M';
+                fieldFogOfWar[parseCoordinate[0]][parseCoordinate[1]] = 'M';
                 printField(fieldFogOfWar);
-                System.out.println("You missed!");
+                System.out.println("You missed. Try again:");
             }
-            break;
+            if(winner()) {
+                System.out.println("You sank the last ship. You won. Congratulations!");
+                break;
+            }
+            input = scanner.nextLine();
         }
 
+    }
+
+    static boolean sunk(String position){
+        //take the position of the ship, then check if the positions are hit
+        for (String coordinate : coordinates) {
+            if(coordinate != null) {
+                String[] hold = coordinate.split(" ");
+                for(String s: hold){
+                    String start = String.valueOf(s.charAt(0));
+                    String end = String.valueOf(s.charAt(1));
+                    String checkPosition = start + end;
+                    if(checkPosition.equals(position)){
+                        for (String string : hold) {
+                            int start1 = Integer.parseInt(String.valueOf(string.charAt(0)));
+                            int end1 = Integer.parseInt(String.valueOf(string.charAt(1)));
+                            char positionChecking = fieldFogOfWar[start1][end1];
+                            //if this ship is not all hit false
+                            if (positionChecking != 'X') {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    static boolean winner(){
+        for (String coordinate : coordinates) {
+            if(coordinate != null) {
+                String[] hold = coordinate.split(" ");
+                for (String s : hold) {
+                    int start = Integer.parseInt(String.valueOf(s.charAt(0)));
+                    int end = Integer.parseInt(String.valueOf(s.charAt(1)));
+                    char checkPosition = fieldFogOfWar[start][end];
+                    if (checkPosition != 'X') {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     static char[][] createEmptyField() {
@@ -150,12 +207,15 @@ public class Main {
         int r2 = Math.max(start[0], end[0]);
         int c1 = Math.min(start[1], end[1]);
         int c2 = Math.max(start[1], end[1]);
-
+        String store = "";
         for (int r = r1; r <= r2; r++) {
             for (int c = c1; c <= c2; c++) {
                 field[r][c] = SHIP;
+                //store coordinates
+                store = store + r + c + " ";
             }
         }
+        coordinates[index++] = store;
     }
 
     static boolean isTooCloseToOtherShips(char[][] field, int[] start, int[] end) {
